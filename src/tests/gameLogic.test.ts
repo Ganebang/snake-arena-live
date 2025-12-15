@@ -4,14 +4,21 @@ import { GameState, Direction } from '@/types/game';
 
 describe('Game Logic', () => {
   describe('createInitialState', () => {
-    it('should create initial state with walls mode', () => {
-      const state = createInitialState('walls');
+    it('should create initial state with pass-through mode by default', () => {
+      const state = createInitialState();
       
-      expect(state.mode).toBe('walls');
+      expect(state.mode).toBe('pass-through');
       expect(state.status).toBe('idle');
       expect(state.score).toBe(0);
       expect(state.snake.length).toBe(3);
       expect(state.direction).toBe('RIGHT');
+    });
+
+    it('should create initial state with walls mode when specified', () => {
+      const state = createInitialState('walls');
+      
+      expect(state.mode).toBe('walls');
+      expect(state.status).toBe('idle');
     });
 
     it('should create initial state with pass-through mode', () => {

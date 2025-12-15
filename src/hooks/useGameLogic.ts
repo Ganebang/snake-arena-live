@@ -2,8 +2,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { GameState, Direction, Position, GameMode, GameStatus } from '@/types/game';
 
 const GRID_SIZE = 20;
-const INITIAL_SPEED = 150;
-const SPEED_INCREMENT = 5;
+const INITIAL_SPEED = 200;
+const SPEED_INCREMENT = 3;
 const MIN_SPEED = 50;
 
 const getInitialSnake = (): Position[] => [
@@ -33,7 +33,7 @@ const getOppositeDirection = (dir: Direction): Direction => {
   return opposites[dir];
 };
 
-export const createInitialState = (mode: GameMode = 'walls'): GameState => {
+export const createInitialState = (mode: GameMode = 'pass-through'): GameState => {
   const snake = getInitialSnake();
   return {
     snake,
@@ -115,7 +115,7 @@ export const changeDirection = (state: GameState, newDirection: Direction): Game
   return { ...state, direction: newDirection };
 };
 
-export const useGameLogic = (initialMode: GameMode = 'walls') => {
+export const useGameLogic = (initialMode: GameMode = 'pass-through') => {
   const [gameState, setGameState] = useState<GameState>(() => createInitialState(initialMode));
   const gameLoopRef = useRef<number | null>(null);
   const directionQueueRef = useRef<Direction[]>([]);
