@@ -119,21 +119,21 @@ export const useGameLogic = (initialMode: GameMode = 'pass-through') => {
   const [gameState, setGameState] = useState<GameState>(() => createInitialState(initialMode));
   const gameLoopRef = useRef<number | null>(null);
   const directionQueueRef = useRef<Direction[]>([]);
-  const lastTimeRef = useRef<number>(0);
-  const speedRef = useRef<number>(INITIAL_SPEED);
+  const gameStateRef = useRef<GameState>(gameState);
 
-  // Keep speed ref in sync
+  // Keep gameStateRef in sync with gameState
   useEffect(() => {
-    speedRef.current = gameState.speed;
-  }, [gameState.speed]);
+    gameStateRef.current = gameState;
+  }, [gameState]);
 
   const startGame = useCallback(() => {
-    setGameState(prev => ({
-      ...createInitialState(prev.mode),
-      status: 'playing',
-    }));
+    const newState = {
+      ...createInitialState(gameStateRef.current.mode),
+      status: 'playing' as const,
+    };
+    setGameState(newState);
+    gameStateRef.current = newState;
     directionQueueRef.current = [];
-    lastTimeRef.current = 0;
   }, []);
 
   const pauseGame = useCallback(() => {
@@ -144,57 +144,46 @@ export const useGameLogic = (initialMode: GameMode = 'pass-through') => {
   }, []);
 
   const resetGame = useCallback(() => {
-    setGameState(prev => createInitialState(prev.mode));
+    const newState = createInitialState(gameStateRef.current.mode);
+    setGameState(newState);
+    gameStateRef.current = newState;
     directionQueueRef.current = [];
-    lastTimeRef.current = 0;
   }, []);
 
   const setMode = useCallback((mode: GameMode) => {
-    setGameState(() => createInitialState(mode));
+    const newState = createInitialState(mode);
+    setGameState(newState);
+    gameStateRef.current = newState;
   }, []);
 
   const handleDirectionChange = useCallback((direction: Direction) => {
     directionQueueRef.current.push(direction);
   }, []);
 
-  // Game loop
+  // Game loop using setInterval for reliable timing
   useEffect(() => {
     if (gameState.status !== 'playing') {
-      if (gameLoopRef.current) {
-        cancelAnimationFrame(gameLoopRef.current);
-        gameLoopRef.current = null;
-      }
       return;
     }
 
-    const gameLoop = (timestamp: number) => {
-      if (lastTimeRef.current === 0) {
-        lastTimeRef.current = timestamp;
+    const intervalId = setInterval(() => {
+      let currentState = gameStateRef.current;
+      
+      // Process direction queue
+      if (directionQueueRef.current.length > 0) {
+        const nextDirection = directionQueueRef.current.shift()!;
+        currentState = changeDirection(currentState, nextDirection);
       }
       
-      if (timestamp - lastTimeRef.current >= speedRef.current) {
-        setGameState(prev => {
-          // Process direction queue
-          if (directionQueueRef.current.length > 0) {
-            const nextDirection = directionQueueRef.current.shift()!;
-            const stateWithNewDirection = changeDirection(prev, nextDirection);
-            return moveSnake(stateWithNewDirection);
-          }
-          return moveSnake(prev);
-        });
-        lastTimeRef.current = timestamp;
-      }
-      gameLoopRef.current = requestAnimationFrame(gameLoop);
-    };
-
-    gameLoopRef.current = requestAnimationFrame(gameLoop);
+      const newState = moveSnake(currentState);
+      gameStateRef.current = newState;
+      setGameState(newState);
+    }, gameState.speed);
 
     return () => {
-      if (gameLoopRef.current) {
-        cancelAnimationFrame(gameLoopRef.current);
-      }
+      clearInterval(intervalId);
     };
-  }, [gameState.status]);
+  }, [gameState.status, gameState.speed]);
 
   // Keyboard controls
   useEffect(() => {
