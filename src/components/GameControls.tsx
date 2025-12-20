@@ -73,8 +73,8 @@ const GameControls: React.FC<GameControlsProps> = ({
         </Button>
       </div>
 
-      {/* Mobile D-Pad */}
-      <div className="flex flex-col items-center gap-1 md:hidden">
+      {/* D-Pad */}
+      <div className="flex flex-col items-center gap-1">
         <Button
           variant="ghost"
           size="icon"
@@ -112,7 +112,7 @@ const GameControls: React.FC<GameControlsProps> = ({
       </div>
 
       {/* Instructions */}
-      <div className="text-center text-[8px] text-muted-foreground hidden md:block">
+      <div className="text-center text-[8px] text-muted-foreground">
         <p>ARROW KEYS / WASD TO MOVE</p>
         <p>SPACE TO PAUSE</p>
       </div>
