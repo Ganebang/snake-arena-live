@@ -119,6 +119,13 @@ export const useGameLogic = (initialMode: GameMode = 'pass-through') => {
   const [gameState, setGameState] = useState<GameState>(() => createInitialState(initialMode));
   const gameLoopRef = useRef<number | null>(null);
   const directionQueueRef = useRef<Direction[]>([]);
+  const lastTimeRef = useRef<number>(0);
+  const speedRef = useRef<number>(INITIAL_SPEED);
+
+  // Keep speed ref in sync
+  useEffect(() => {
+    speedRef.current = gameState.speed;
+  }, [gameState.speed]);
 
   const startGame = useCallback(() => {
     setGameState(prev => ({
@@ -126,6 +133,7 @@ export const useGameLogic = (initialMode: GameMode = 'pass-through') => {
       status: 'playing',
     }));
     directionQueueRef.current = [];
+    lastTimeRef.current = 0;
   }, []);
 
   const pauseGame = useCallback(() => {
@@ -138,12 +146,11 @@ export const useGameLogic = (initialMode: GameMode = 'pass-through') => {
   const resetGame = useCallback(() => {
     setGameState(prev => createInitialState(prev.mode));
     directionQueueRef.current = [];
+    lastTimeRef.current = 0;
   }, []);
 
   const setMode = useCallback((mode: GameMode) => {
-    setGameState(prev => ({
-      ...createInitialState(mode),
-    }));
+    setGameState(() => createInitialState(mode));
   }, []);
 
   const handleDirectionChange = useCallback((direction: Direction) => {
@@ -160,10 +167,12 @@ export const useGameLogic = (initialMode: GameMode = 'pass-through') => {
       return;
     }
 
-    let lastTime = 0;
-
     const gameLoop = (timestamp: number) => {
-      if (timestamp - lastTime >= gameState.speed) {
+      if (lastTimeRef.current === 0) {
+        lastTimeRef.current = timestamp;
+      }
+      
+      if (timestamp - lastTimeRef.current >= speedRef.current) {
         setGameState(prev => {
           // Process direction queue
           if (directionQueueRef.current.length > 0) {
@@ -173,7 +182,7 @@ export const useGameLogic = (initialMode: GameMode = 'pass-through') => {
           }
           return moveSnake(prev);
         });
-        lastTime = timestamp;
+        lastTimeRef.current = timestamp;
       }
       gameLoopRef.current = requestAnimationFrame(gameLoop);
     };
@@ -185,7 +194,7 @@ export const useGameLogic = (initialMode: GameMode = 'pass-through') => {
         cancelAnimationFrame(gameLoopRef.current);
       }
     };
-  }, [gameState.status, gameState.speed]);
+  }, [gameState.status]);
 
   // Keyboard controls
   useEffect(() => {
