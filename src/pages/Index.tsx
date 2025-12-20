@@ -6,19 +6,19 @@ import GameCanvas from '@/components/GameCanvas';
 import GameControls from '@/components/GameControls';
 import Leaderboard from '@/components/Leaderboard';
 import Header from '@/components/Header';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 const Index: React.FC = () => {
   const { gameState, startGame, pauseGame, resetGame, setMode, handleDirectionChange } = useGameLogic();
   const { isAuthenticated } = useAuth();
-  const { toast } = useToast();
   const prevStatusRef = React.useRef(gameState.status);
 
   // Submit score when game ends
   React.useEffect(() => {
     if (prevStatusRef.current === 'playing' && gameState.status === 'game-over') {
       if (isAuthenticated && gameState.score > 0) {
-        api.leaderboard.submitScore(gameState.score, gameState.mode)
+        api.leaderboard
+          .submitScore(gameState.score, gameState.mode)
           .then(() => {
             toast({
               title: "Score Submitted!",
@@ -31,7 +31,7 @@ const Index: React.FC = () => {
       }
     }
     prevStatusRef.current = gameState.status;
-  }, [gameState.status, gameState.score, gameState.mode, isAuthenticated, toast]);
+  }, [gameState.status, gameState.score, gameState.mode, isAuthenticated]);
 
   return (
     <div className="min-h-screen bg-background">
