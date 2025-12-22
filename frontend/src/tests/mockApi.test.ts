@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { api } from '@/services/mockApi';
 
 describe('Mock API', () => {
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear();
+    // Reset internal mock state
+    api.auth.reset();
   });
 
   describe('Auth API', () => {
@@ -94,7 +96,7 @@ describe('Mock API', () => {
 
     it('should filter by game mode', async () => {
       const wallsEntries = await api.leaderboard.getLeaderboard('walls');
-      
+
       wallsEntries.forEach(entry => {
         expect(entry.mode).toBe('walls');
       });
@@ -147,7 +149,7 @@ describe('Mock API', () => {
     it('should simulate player movement', async () => {
       const players = await api.livePlayers.getLivePlayers();
       const initialPlayer = players[0];
-      
+
       const movedPlayer = api.livePlayers.simulatePlayerMove(initialPlayer);
 
       expect(movedPlayer.snake[0]).not.toEqual(initialPlayer.snake[0]);
@@ -166,7 +168,7 @@ describe('Mock API', () => {
       };
 
       const movedPlayer = api.livePlayers.simulatePlayerMove(player);
-      
+
       expect(movedPlayer.snake[0].x).toBeGreaterThanOrEqual(0);
       expect(movedPlayer.snake[0].x).toBeLessThan(20);
     });
@@ -183,8 +185,13 @@ describe('Mock API', () => {
         isPlaying: true,
       };
 
+      // Prevent random direction change
+      const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
       const movedPlayer = api.livePlayers.simulatePlayerMove(player);
-      
+
+      randomSpy.mockRestore();
+
       expect(movedPlayer.score).toBe(60);
       expect(movedPlayer.snake.length).toBe(3);
     });

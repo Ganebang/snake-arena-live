@@ -1,8 +1,8 @@
-import { 
-  User, 
-  LeaderboardEntry, 
-  LivePlayer, 
-  AuthCredentials, 
+import {
+  User,
+  LeaderboardEntry,
+  LivePlayer,
+  AuthCredentials,
   AuthResponse,
   GameMode,
   Position,
@@ -39,47 +39,47 @@ let authToken: string | null = null;
 export const authApi = {
   async login(credentials: AuthCredentials): Promise<AuthResponse> {
     await delay(500);
-    
+
     const user = mockUsers.find(u => u.email === credentials.email);
     if (!user) {
       throw new Error('Invalid email or password');
     }
-    
+
     // In real app, we'd verify password here
     currentUser = user;
     authToken = `mock-token-${user.id}-${Date.now()}`;
-    
+
     localStorage.setItem('authToken', authToken);
     localStorage.setItem('currentUser', JSON.stringify(user));
-    
+
     return { user, token: authToken };
   },
 
   async signup(credentials: AuthCredentials): Promise<AuthResponse> {
     await delay(500);
-    
+
     if (mockUsers.some(u => u.email === credentials.email)) {
       throw new Error('Email already exists');
     }
-    
+
     if (mockUsers.some(u => u.username === credentials.username)) {
       throw new Error('Username already taken');
     }
-    
+
     const newUser: User = {
       id: String(mockUsers.length + 1),
       username: credentials.username!,
       email: credentials.email,
       createdAt: new Date().toISOString(),
     };
-    
+
     mockUsers.push(newUser);
     currentUser = newUser;
     authToken = `mock-token-${newUser.id}-${Date.now()}`;
-    
+
     localStorage.setItem('authToken', authToken);
     localStorage.setItem('currentUser', JSON.stringify(newUser));
-    
+
     return { user: newUser, token: authToken };
   },
 
@@ -93,21 +93,27 @@ export const authApi = {
 
   async getCurrentUser(): Promise<User | null> {
     await delay(100);
-    
+
     const storedUser = localStorage.getItem('currentUser');
     const storedToken = localStorage.getItem('authToken');
-    
+
     if (storedUser && storedToken) {
       currentUser = JSON.parse(storedUser);
       authToken = storedToken;
       return currentUser;
     }
-    
+
     return null;
   },
 
   isAuthenticated(): boolean {
     return !!localStorage.getItem('authToken');
+  },
+
+  // Helper for testing
+  reset() {
+    currentUser = null;
+    authToken = null;
   }
 };
 
@@ -115,22 +121,22 @@ export const authApi = {
 export const leaderboardApi = {
   async getLeaderboard(mode?: GameMode): Promise<LeaderboardEntry[]> {
     await delay(300);
-    
+
     let entries = [...mockLeaderboard];
     if (mode) {
       entries = entries.filter(e => e.mode === mode);
     }
-    
+
     return entries.sort((a, b) => b.score - a.score);
   },
 
   async submitScore(score: number, mode: GameMode): Promise<LeaderboardEntry> {
     await delay(300);
-    
+
     if (!currentUser) {
       throw new Error('Must be logged in to submit score');
     }
-    
+
     const entry: LeaderboardEntry = {
       id: String(mockLeaderboard.length + 1),
       userId: currentUser.id,
@@ -139,21 +145,21 @@ export const leaderboardApi = {
       mode,
       createdAt: new Date().toISOString(),
     };
-    
+
     mockLeaderboard.push(entry);
     mockLeaderboard.sort((a, b) => b.score - a.score);
-    
+
     return entry;
   },
 
   async getUserHighScore(userId: string, mode?: GameMode): Promise<number> {
     await delay(200);
-    
+
     let entries = mockLeaderboard.filter(e => e.userId === userId);
     if (mode) {
       entries = entries.filter(e => e.mode === mode);
     }
-    
+
     if (entries.length === 0) return 0;
     return Math.max(...entries.map(e => e.score));
   }
@@ -164,7 +170,7 @@ const generateMockSnake = (): Position[] => {
   const length = Math.floor(Math.random() * 10) + 3;
   const startX = Math.floor(Math.random() * 15) + 2;
   const startY = Math.floor(Math.random() * 15) + 2;
-  
+
   return Array.from({ length }, (_, i) => ({
     x: startX - i,
     y: startY
@@ -266,7 +272,7 @@ export const livePlayersApi = {
 
     const ateFood = newHead.x === player.food.x && newHead.y === player.food.y;
     const newSnake = [newHead, ...player.snake];
-    
+
     if (!ateFood) {
       newSnake.pop();
     }

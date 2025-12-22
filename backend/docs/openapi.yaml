@@ -1,0 +1,305 @@
+openapi: 3.0.0
+info:
+  title: Snake Arena API
+  version: 1.0.0
+  description: Backend API for Snake Arena Live
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - username
+        - email
+        - createdAt
+
+    AuthCredentials:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        username:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        token:
+          type: string
+      required:
+        - user
+        - token
+
+    GameMode:
+      type: string
+      enum:
+        - walls
+        - pass-through
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+        score:
+          type: integer
+        mode:
+          $ref: '#/components/schemas/GameMode'
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - username
+        - score
+        - mode
+        - createdAt
+
+    Position:
+      type: object
+      properties:
+        x:
+          type: integer
+        y:
+          type: integer
+      required:
+        - x
+        - y
+
+    LivePlayer:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        score:
+          type: integer
+        mode:
+          $ref: '#/components/schemas/GameMode'
+        snake:
+          type: array
+          items:
+            $ref: '#/components/schemas/Position'
+        food:
+          $ref: '#/components/schemas/Position'
+        direction:
+          type: string
+          enum: [UP, DOWN, LEFT, RIGHT]
+        isPlaying:
+          type: boolean
+      required:
+        - id
+        - username
+        - score
+        - mode
+        - snake
+        - food
+        - direction
+        - isPlaying
+
+paths:
+  /auth/login:
+    post:
+      summary: Login user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthCredentials'
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  /auth/signup:
+    post:
+      summary: Register new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthCredentials'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Email or username already exists
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      tags: [Auth]
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Successfully logged out
+
+  /auth/me:
+    get:
+      summary: Get current user
+      tags: [Auth]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current user details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /leaderboard:
+    get:
+      summary: Get leaderboard entries
+      tags: [Leaderboard]
+      parameters:
+        - in: query
+          name: mode
+          schema:
+            $ref: '#/components/schemas/GameMode'
+          description: Filter by game mode
+      responses:
+        '200':
+          description: List of leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LeaderboardEntry'
+
+    post:
+      summary: Submit score
+      tags: [Leaderboard]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                score:
+                  type: integer
+                mode:
+                  $ref: '#/components/schemas/GameMode'
+              required:
+                - score
+                - mode
+      responses:
+        '201':
+          description: Score submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardEntry'
+
+  /leaderboard/high-score:
+    get:
+      summary: Get user high score
+      tags: [Leaderboard]
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: mode
+          schema:
+            $ref: '#/components/schemas/GameMode'
+      responses:
+        '200':
+          description: User's high score
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  score:
+                    type: integer
+
+  /live-players:
+    get:
+      summary: Get all live players
+      tags: [LivePlayers]
+      responses:
+        '200':
+          description: List of active players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LivePlayer'
+
+  /live-players/{id}:
+    get:
+      summary: Get specific player stream data
+      tags: [LivePlayers]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Player data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LivePlayer'
+        '404':
+          description: Player not found
