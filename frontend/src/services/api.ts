@@ -8,7 +8,8 @@ import {
 } from '@/types/game';
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+// Use relative path for Docker nginx proxy, or fall back to environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 // Helper function to get auth token from localStorage
 const getAuthToken = (): string | null => {

@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: snake-arena-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-snakearena}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-snakearena_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-snakearena}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-snakearena}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - snake-arena-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: snake-arena-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-snakearena}:${POSTGRES_PASSWORD:-snakearena_dev_password}@postgres:5432/${POSTGRES_DB:-snakearena}
+      SECRET_KEY: ${SECRET_KEY:-development_secret_key_change_in_production}
+      # Use JSON array format for list fields with pydantic
+      CORS_ORIGINS: '["http://localhost","http://localhost:80"]'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/.venv
+    networks:
+      - snake-arena-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: snake-arena-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - snake-arena-network
+
+networks:
+  snake-arena-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

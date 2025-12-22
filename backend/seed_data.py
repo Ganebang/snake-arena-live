@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """
-Seed script to populate the backend with fake data for testing.
+Seed script to populate the database with fake data for testing.
 Run this with: uv run python seed_data.py
 """
 
-import httpx
-import asyncio
-from datetime import datetime
+import sys
+import os
+from pathlib import Path
 
-BASE_URL = "http://localhost:8000/api/v1"
+# Add the src directory to the path
+sys.path.insert(0, str(Path(__file__).parent))
+
+from src.db.database import SessionLocal, init_db
+from src.db import session as db_session
+from src.core.security import get_password_hash
 
 # Test users to create
 TEST_USERS = [
@@ -63,53 +68,46 @@ SCORES_DATA = [
     ("pass-through", 250),
 ]
 
-async def main():
-    async with httpx.AsyncClient() as client:
-        print("🚀 Starting data seeding...")
-        print()
+def main():
+    print("🚀 Starting data seeding...")
+    print()
+    
+    # Initialize database
+    init_db()
+    
+    # Create database session
+    db = SessionLocal()
+    
+    try:
+        # 1. Create users and collect their data
+        users_data = []
         
-        # 1. Create users and get their tokens
-        tokens = []
-        user_data = []
-        
-        for i, user in enumerate(TEST_USERS):
-            try:
-                response = await client.post(
-                    f"{BASE_URL}/auth/signup",
-                    json=user
+        for user in TEST_USERS:
+            # Check if user already exists
+            existing_user = db_session.get_user_by_email(db, user["email"])
+            
+            if existing_user:
+                print(f"✅ User already exists: {user['username']} ({user['email']})")
+                users_data.append(existing_user)
+            else:
+                # Create new user
+                hashed_password = get_password_hash(user["password"])
+                new_user = db_session.create_user(
+                    db, 
+                    user["username"], 
+                    user["email"], 
+                    hashed_password
                 )
-                
-                if response.status_code == 201:
-                    data = response.json()
-                    tokens.append(data["token"])
-                    user_data.append(data["user"])
-                    print(f"✅ Created user: {user['username']} ({user['email']})")
-                elif response.status_code == 400:
-                    # User already exists, try to login
-                    login_response = await client.post(
-                        f"{BASE_URL}/auth/login",
-                        json={"email": user["email"], "password": user["password"]}
-                    )
-                    if login_response.status_code == 200:
-                        data = login_response.json()
-                        tokens.append(data["token"])
-                        user_data.append(data["user"])
-                        print(f"✅ Logged in existing user: {user['username']} ({user['email']})")
-                else:
-                    print(f"❌ Failed to create user {user['username']}: {response.status_code}")
-            except Exception as e:
-                print(f"❌ Error creating user {user['username']}: {e}")
+                users_data.append(new_user)
+                print(f"✅ Created user: {user['username']} ({user['email']})")
         
         print()
-        print(f"📊 Created/loaded {len(tokens)} users")
+        print(f"📊 Total users: {len(users_data)}")
         print()
         
         # 2. Submit scores for users
         score_idx = 0
-        for i, user in enumerate(user_data):
-            if i >= len(tokens):
-                break
-                
+        for i, user in enumerate(users_data):
             # Calculate how many scores this user should submit
             scores_count = 3 if i < 3 else (4 if i == 5 else 2)
             if i == 6:
@@ -125,31 +123,26 @@ async def main():
                 score_idx += 1
                 
                 try:
-                    response = await client.post(
-                        f"{BASE_URL}/leaderboard",
-                        json={"score": score, "mode": mode},
-                        headers={"Authorization": f"Bearer {tokens[i]}"}
-                    )
-                    
-                    if response.status_code == 201:
-                        print(f"✅ Added score for {user['username']}: {score} ({mode})")
-                    else:
-                        print(f"❌ Failed to add score for {user['username']}: {response.status_code}")
+                    entry = db_session.add_score(db, user.id, user.username, score, mode)
+                    print(f"✅ Added score for {user.username}: {score} ({mode})")
                 except Exception as e:
-                    print(f"❌ Error adding score for {user['username']}: {e}")
+                    print(f"❌ Failed to add score for {user.username}: {e}")
         
         print()
         print("✨ Seeding complete!")
         print()
         print("You can now test the following endpoints:")
-        print(f"  - GET {BASE_URL}/leaderboard (all scores)")
-        print(f"  - GET {BASE_URL}/leaderboard?mode=walls (walls mode only)")
-        print(f"  - GET {BASE_URL}/leaderboard?mode=pass-through (pass-through mode only)")
-        print(f"  - GET {BASE_URL}/live-players (currently empty, will be populated during gameplay)")
+        print("  - GET http://localhost:8000/api/v1/leaderboard (all scores)")
+        print("  - GET http://localhost:8000/api/v1/leaderboard?mode=walls (walls mode only)")
+        print("  - GET http://localhost:8000/api/v1/leaderboard?mode=pass-through (pass-through mode only)")
+        print("  - GET http://localhost:8000/api/v1/live-players (currently empty, will be populated during gameplay)")
         print()
         print("Test credentials for login:")
         for user in TEST_USERS[:3]:
             print(f"  - {user['email']} / {user['password']}")
+            
+    finally:
+        db.close()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
