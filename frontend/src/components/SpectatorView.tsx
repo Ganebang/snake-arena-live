@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LivePlayer } from '@/types/game';
-import { api } from '@/services/mockApi';
+import { api } from '@/services/api';
 import GameCanvas from './GameCanvas';
 import { Button } from '@/components/ui/button';
 import { Eye, Users, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -9,7 +9,6 @@ const SpectatorView: React.FC = () => {
   const [livePlayers, setLivePlayers] = useState<LivePlayer[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<LivePlayer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const simulationRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch live players
   useEffect(() => {
@@ -31,21 +30,24 @@ const SpectatorView: React.FC = () => {
     fetchPlayers();
   }, []);
 
-  // Simulate player movement
+  // Periodically refresh player data from backend
   useEffect(() => {
     if (!selectedPlayer) return;
 
-    simulationRef.current = setInterval(() => {
-      setSelectedPlayer(prev => {
-        if (!prev) return prev;
-        return api.livePlayers.simulatePlayerMove(prev);
-      });
-    }, 150);
+    // Fetch updates every 500ms
+    const intervalId = setInterval(async () => {
+      try {
+        const updatedPlayer = await api.livePlayers.getPlayerStream(selectedPlayer.id);
+        if (updatedPlayer) {
+          setSelectedPlayer(updatedPlayer);
+        }
+      } catch (error) {
+        console.error('Failed to fetch player update:', error);
+      }
+    }, 500);
 
     return () => {
-      if (simulationRef.current) {
-        clearInterval(simulationRef.current);
-      }
+      clearInterval(intervalId);
     };
   }, [selectedPlayer?.id]);
 
@@ -91,7 +93,7 @@ const SpectatorView: React.FC = () => {
         <Button variant="ghost" size="icon" onClick={handlePrevPlayer}>
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        
+
         <div className="flex gap-2 overflow-x-auto py-2 px-4 max-w-md">
           {livePlayers.map((player) => (
             <Button
@@ -105,7 +107,7 @@ const SpectatorView: React.FC = () => {
             </Button>
           ))}
         </div>
-        
+
         <Button variant="ghost" size="icon" onClick={handleNextPlayer}>
           <ChevronRight className="h-5 w-5" />
         </Button>

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, AuthCredentials } from '@/types/game';
-import { api } from '@/services/mockApi';
+import { api } from '@/services/api';
 
 interface AuthContextType {
   user: User | null;

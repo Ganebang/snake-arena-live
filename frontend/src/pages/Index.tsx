@@ -1,7 +1,7 @@
 import React from 'react';
 import { useGameLogic } from '@/hooks/useGameLogic';
 import { useAuth } from '@/contexts/AuthContext';
-import { api } from '@/services/mockApi';
+import { api } from '@/services/api';
 import GameCanvas from '@/components/GameCanvas';
 import GameControls from '@/components/GameControls';
 import Leaderboard from '@/components/Leaderboard';
@@ -36,7 +36,7 @@ const Index: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
           {/* Game Area */}
@@ -47,9 +47,9 @@ const Index: React.FC = () => {
                 {gameState.mode === 'walls' ? 'WALLS MODE - Hit a wall and die!' : 'WRAP MODE - Pass through walls!'}
               </p>
             </div>
-            
+
             <GameCanvas gameState={gameState} cellSize={18} />
-            
+
             {!isAuthenticated && gameState.status === 'game-over' && (
               <p className="text-xs text-secondary font-display animate-pulse">
                 Log in to save your scores!

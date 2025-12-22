@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { LeaderboardEntry, GameMode } from '@/types/game';
-import { api } from '@/services/mockApi';
+import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Trophy, Medal, Award } from 'lucide-react';
 
