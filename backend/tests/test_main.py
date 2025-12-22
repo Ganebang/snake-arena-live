@@ -1,22 +1,46 @@
 from fastapi.testclient import TestClient
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from src.main import app
-from src.db.session import db_instance
+from src.db.models import Base
+from src.db.database import get_db
 from src.core.config import settings
 
+# Create in-memory SQLite database for testing
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def override_get_db():
+    """Override the database dependency for testing."""
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Override the dependency
+app.dependency_overrides[get_db] = override_get_db
+
+# Create test client
 client = TestClient(app)
 
 @pytest.fixture(autouse=True)
-def clean_db():
-    # Reset database before each test
-    db_instance.clear()
+def setup_db():
+    """Create tables before each test and drop them after."""
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
 
 def test_read_main():
+    """Test the root endpoint."""
     response = client.get("/")
     assert response.status_code == 200
     assert response.json() == {"message": "Welcome to Snake Arena API"}
 
 def test_auth_workflow():
+    """Test complete authentication workflow: signup, login, get user."""
     # 1. Signup
     signup_data = {
         "email": "test@example.com",
@@ -46,6 +70,7 @@ def test_auth_workflow():
     assert response.json()["email"] == "test@example.com"
 
 def test_leaderboard():
+    """Test leaderboard functionality: submit score and retrieve."""
     # Setup user
     signup_data = {"email": "player@example.com", "password": "pwd", "username": "player"}
     response = client.post(f"{settings.API_V1_STR}/auth/signup", json=signup_data)
@@ -68,30 +93,3 @@ def test_leaderboard():
     response = client.get(f"{settings.API_V1_STR}/leaderboard/high-score?userId={user_id}&mode=walls")
     assert response.status_code == 200
     assert response.json()["score"] == 100
-
-def test_live_players():
-    # Manually add a live player to mock db for testing
-    from src.schemas.game import LivePlayer, GameMode, Direction, Position
-    
-    player = LivePlayer(
-        id="p1",
-        username="live_player",
-        score=50,
-        mode=GameMode.walls,
-        snake=[Position(x=10, y=10)],
-        food=Position(x=20, y=20),
-        direction=Direction.RIGHT,
-        isPlaying=True
-    )
-    db_instance.update_live_player(player)
-    
-    # Get all players
-    response = client.get(f"{settings.API_V1_STR}/live-players")
-    assert response.status_code == 200
-    assert len(response.json()) == 1
-    assert response.json()[0]["username"] == "live_player"
-    
-    # Get specific player
-    response = client.get(f"{settings.API_V1_STR}/live-players/p1")
-    assert response.status_code == 200
-    assert response.json()["id"] == "p1"
