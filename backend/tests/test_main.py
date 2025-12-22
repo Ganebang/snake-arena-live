@@ -1,45 +1,59 @@
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from src.main import app
 from src.db.models import Base
 from src.db.database import get_db
 from src.core.config import settings
 
-# Create in-memory SQLite database for testing
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def override_get_db():
-    """Override the database dependency for testing."""
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Override the dependency
-app.dependency_overrides[get_db] = override_get_db
-
-# Create test client
-client = TestClient(app)
-
-@pytest.fixture(autouse=True)
-def setup_db():
-    """Create tables before each test and drop them after."""
+@pytest.fixture(scope="function")
+def test_engine():
+    """Create a fresh in-memory database engine for each test."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False}
+    )
     Base.metadata.create_all(bind=engine)
-    yield
+    yield engine
     Base.metadata.drop_all(bind=engine)
+    engine.dispose()
 
-def test_read_main():
+
+@pytest.fixture(scope="function")
+def test_session(test_engine):
+    """Create a database session for testing."""
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+    return TestingSessionLocal
+
+
+@pytest.fixture(scope="function")
+def client(test_session):
+    """Create a test client with isolated database."""
+    def override_get_db():
+        db = test_session()
+        try:
+            yield db
+        finally:
+            db.close()
+    
+    app.dependency_overrides[get_db] = override_get_db
+    
+    with TestClient(app) as test_client:
+        yield test_client
+    
+    app.dependency_overrides.clear()
+
+
+def test_read_main(client):
     """Test the root endpoint."""
     response = client.get("/")
     assert response.status_code == 200
     assert response.json() == {"message": "Welcome to Snake Arena API"}
 
-def test_auth_workflow():
+
+def test_auth_workflow(client):
     """Test complete authentication workflow: signup, login, get user."""
     # 1. Signup
     signup_data = {
@@ -69,7 +83,8 @@ def test_auth_workflow():
     assert response.status_code == 200
     assert response.json()["email"] == "test@example.com"
 
-def test_leaderboard():
+
+def test_leaderboard(client):
     """Test leaderboard functionality: submit score and retrieve."""
     # Setup user
     signup_data = {"email": "player@example.com", "password": "pwd", "username": "player"}

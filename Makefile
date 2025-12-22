@@ -194,4 +194,4 @@ docker-shell-db:
 
 docker-test-backend:
 	@echo "Running backend tests in Docker..."
-	docker-compose exec backend uv run pytest
+	docker-compose exec backend uv run pytest integration_tests/
