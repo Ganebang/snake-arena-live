@@ -1,6 +1,6 @@
 # Docker Setup Guide for Snake Arena Live
 
-This guide explains how to run the Snake Arena Live application using Docker Compose with PostgreSQL, FastAPI backend, and Nginx frontend.
+This guide explains how to run the Snake Arena Live application using Docker Compose with PostgreSQL and a unified application container combining both the FastAPI backend and Nginx frontend.
 
 ## Prerequisites
 
@@ -82,7 +82,7 @@ docker-compose down
 
 ## Architecture
 
-The Docker Compose setup includes three services:
+The Docker Compose setup includes two services:
 
 ### 1. PostgreSQL Database (`postgres`)
 - **Image**: postgresql:17-alpine
@@ -91,22 +91,22 @@ The Docker Compose setup includes three services:
 - **Volume**: `postgres_data` for data persistence
 - **Health Check**: Automatic health monitoring
 
-### 2. FastAPI Backend (`backend`)
-- **Built from**: `./backend/Dockerfile`
-- **Port**: 8000 (internal to Docker network)
+### 2. Unified Application (`app`)
+- **Built from**: `./Dockerfile` (multi-stage build)
+- **Exposed Port**: 80
 - **Dependencies**: Waits for PostgreSQL to be healthy
-- **Volume Mount**: Hot-reload in development mode
-- **Entrypoint**: Runs database migrations on startup
+- **Process Manager**: Supervisord manages both services
+- **Entrypoint**: Runs database initialization on startup
+- **Components**:
+  - **Nginx**: Serves static React frontend on port 80
+  - **FastAPI Backend**: Runs on localhost:8000 (internal)
+  - Nginx proxies `/api/*` requests to the FastAPI backend
 
-### 3. Nginx Frontend (`frontend`)
-- **Built from**: `./frontend/Dockerfile`
-- **Port**: 80 (exposed to host)
-- **Features**:
-  - Serves static React application
-  - Proxies `/api` requests to backend
-  - SPA routing support
-  - Gzip compression
-  - Security headers
+**Benefits**:
+- Simplified deployment with fewer containers
+- Reduced resource overhead
+- Production-ready setup with Nginx handling static files
+- Built-in health checks
 
 ## Development Workflow
 
@@ -117,17 +117,17 @@ Run backend tests inside the container:
 ```bash
 make docker-test-backend
 # or
-docker-compose exec backend uv run pytest
+docker-compose exec app bash -c "cd /app/backend && uv run pytest"
 ```
 
 ### Accessing Services
 
-Open a shell in the backend container:
+Open a shell in the app container:
 
 ```bash
 make docker-shell-backend
 # or
-docker-compose exec backend /bin/bash
+docker-compose exec app /bin/bash
 ```
 
 Access PostgreSQL directly:
@@ -143,24 +143,21 @@ docker-compose exec postgres psql -U snakearena -d snakearena
 To seed the database with test data, run:
 
 ```bash
-docker-compose exec backend uv run python seed_data.py
+docker-compose exec app bash -c "cd /app/backend && uv run python seed_data.py"
 ```
 
 ### Rebuilding After Code Changes
 
-For backend changes (hot-reload enabled):
-- Changes to Python code are automatically detected
-- No rebuild needed
+The unified container includes both frontend and backend, so any code changes require a rebuild:
 
-For frontend changes:
 ```bash
-docker-compose build frontend
-docker-compose up -d frontend
+docker-compose build app
+docker-compose up -d app
 ```
 
-For dependency changes:
+For dependency changes or clean rebuild:
 ```bash
-docker-compose build
+docker-compose build app --no-cache
 docker-compose up -d
 ```
 
@@ -184,7 +181,7 @@ To change exposed ports, edit `docker-compose.yml`:
 
 ```yaml
 services:
-  frontend:
+  app:
     ports:
       - "8080:80"  # Change 8080 to your desired port
 ```
@@ -200,7 +197,7 @@ docker-compose ps
 
 View detailed logs:
 ```bash
-docker-compose logs backend
+docker-compose logs app
 docker-compose logs postgres
 ```
 
@@ -211,9 +208,9 @@ Ensure PostgreSQL is healthy:
 docker-compose ps postgres
 ```
 
-Check backend logs for connection errors:
+Check app logs for connection errors:
 ```bash
-docker-compose logs backend | grep -i error
+docker-compose logs app | grep -i error
 ```
 
 ### Port Already in Use
@@ -251,12 +248,12 @@ Example production docker-compose additions:
 
 ```yaml
 services:
-  backend:
+  app:
     deploy:
       resources:
         limits:
-          cpus: '1'
-          memory: 512M
+          cpus: '1.5'
+          memory: 1G
     restart: always
 ```
 

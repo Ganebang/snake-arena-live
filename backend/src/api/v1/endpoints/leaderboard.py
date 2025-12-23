@@ -1,25 +1,27 @@
-from fastapi import APIRouter, Depends, Query
-from typing import List, Optional, Annotated
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from src.schemas.game import LeaderboardEntry, ScoreSubmission, GameMode
-from src.schemas.user import User
-from src.db.database import get_db
 from src.db import session as db_session
+from src.db.database import get_db
+from src.schemas.game import GameMode, LeaderboardEntry, ScoreSubmission
+from src.schemas.user import User
+
 from .auth import get_current_user
 
 router = APIRouter()
 
-@router.get("", response_model=List[LeaderboardEntry])
+@router.get("", response_model=list[LeaderboardEntry])
 async def get_leaderboard(
     db: Annotated[Session, Depends(get_db)],
-    mode: Optional[GameMode] = None
+    mode: GameMode | None = None
 ):
     return db_session.get_leaderboard(db, mode)
 
 @router.post("", response_model=LeaderboardEntry, status_code=201)
 async def submit_score(
-    submission: ScoreSubmission, 
+    submission: ScoreSubmission,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)]
 ):
@@ -27,9 +29,9 @@ async def submit_score(
 
 @router.get("/high-score")
 async def get_high_score(
-    userId: str, 
+    userId: str,
     db: Annotated[Session, Depends(get_db)],
-    mode: Optional[GameMode] = None
+    mode: GameMode | None = None
 ):
     score = db_session.get_user_high_score(db, userId, mode)
     return {"score": score}

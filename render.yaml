@@ -1,0 +1,44 @@
+services:
+  # The Unified Application (FastAPI + Nginx + Supervisord)
+  - type: web
+    name: snake-arena-live
+    env: docker
+    plan: free
+    region: oregon
+    buildCommand: docker build -t snake-arena .
+    startCommand: ./entrypoint.sh 
+    # Note: startCommand is technically defined in Dockerfile ENTRYPOINT,
+    # but explicit declaration can be helpful for clarity or overrides.
+    # However, Render's Docker runtime respects Dockerfile ENTRYPOINT by default.
+    envVars:
+      - key: PORT
+        value: 80
+      - key: DATABASE_URL
+        fromDatabase:
+          name: snake-arena-db
+          property: connectionString
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: snake-arena-db
+          property: host
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: snake-arena-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: snake-arena-db
+          property: password
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: snake-arena-db
+          property: database
+      - key: SECRET_KEY
+        generateValue: true
+
+databases:
+  - name: snake-arena-db
+    databaseName: snakearena
+    user: snakearena
+    plan: free # Note: Free tier availability depends on account status (trial vs hobby)
+    region: oregon

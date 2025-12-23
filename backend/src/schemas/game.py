@@ -1,7 +1,9 @@
-from pydantic import BaseModel
-from typing import List
 from datetime import datetime
-from .enums import GameMode, Direction
+
+from pydantic import BaseModel
+
+from .enums import Direction, GameMode
+
 
 class LeaderboardEntry(BaseModel):
     id: str
@@ -24,7 +26,7 @@ class LivePlayer(BaseModel):
     username: str
     score: int
     mode: GameMode
-    snake: List[Position]
+    snake: list[Position]
     food: Position
     direction: Direction
     isPlaying: bool

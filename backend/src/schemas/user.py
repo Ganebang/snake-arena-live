@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
-from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr
+
 
 class UserBase(BaseModel):
     username: str
@@ -12,5 +13,5 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: str
     createdAt: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)

@@ -1,12 +1,12 @@
-from fastapi import APIRouter, HTTPException, Depends
-from typing import List, Annotated
 
-from src.schemas.game import LivePlayer
+from fastapi import APIRouter, HTTPException
+
 from src.db import session as db_session
+from src.schemas.game import LivePlayer
 
 router = APIRouter()
 
-@router.get("", response_model=List[LivePlayer])
+@router.get("", response_model=list[LivePlayer])
 async def get_live_players():
     return db_session.get_live_players()
 

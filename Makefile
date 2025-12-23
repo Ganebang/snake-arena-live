@@ -38,7 +38,7 @@ help:
 	@echo "  make docker-logs      - View logs from all services"
 	@echo "  make docker-logs-f    - Follow logs from all services"
 	@echo "  make docker-clean     - Remove containers, volumes, and images"
-	@echo "  make docker-shell-backend  - Open shell in backend container"
+	@echo "  make docker-shell-backend  - Open shell in app container"
 	@echo "  make docker-shell-db  - Open PostgreSQL shell"
 	@echo ""
 	@echo "Build & Deployment:"
@@ -48,7 +48,12 @@ help:
 	@echo "Utilities:"
 	@echo "  make clean            - Clean build artifacts and dependencies"
 	@echo "  make lint             - Run linters for both projects"
+	@echo "  make lint-check       - Check code without fixing"
 	@echo "  make format           - Format code in both projects"
+	@echo "  make type-check       - Run type checkers"
+	@echo "  make coverage         - Generate test coverage reports"
+	@echo "  make pre-commit-install - Install pre-commit hooks"
+	@echo "  make security-check   - Run security vulnerability scan"
 
 # Installation targets
 install: install-backend install-frontend
@@ -185,8 +190,8 @@ docker-clean:
 	@echo "Docker cleanup complete!"
 
 docker-shell-backend:
-	@echo "Opening shell in backend container..."
-	docker-compose exec backend /bin/bash
+	@echo "Opening shell in app container..."
+	docker-compose exec app /bin/bash
 
 docker-shell-db:
 	@echo "Opening PostgreSQL shell..."
@@ -194,4 +199,39 @@ docker-shell-db:
 
 docker-test-backend:
 	@echo "Running backend tests in Docker..."
-	docker-compose exec backend uv run pytest integration_tests/
+	docker-compose exec app bash -c "cd /app/backend && uv run pytest integration_tests/"
+
+# Code Quality targets
+lint-check: lint-check-backend lint-check-frontend
+
+lint-check-backend:
+	@echo "Checking backend code (without fixing)..."
+	cd backend && uv run ruff check src/ tests/ integration_tests/
+
+lint-check-frontend:
+	@echo "Checking frontend code..."
+	cd frontend && npm run lint
+
+type-check:
+	@echo "Running type checks on backend..."
+	cd backend && uv run mypy src/
+
+coverage:
+	@echo "Generating backend coverage report..."
+	cd backend && uv run pytest --cov=src --cov-report=html --cov-report=term
+	@echo ""
+	@echo "Coverage report generated in backend/htmlcov/index.html"
+
+pre-commit-install:
+	@echo "Installing pre-commit hooks..."
+	cd backend && uv run pre-commit install
+	@echo "Pre-commit hooks installed successfully!"
+
+security-check:
+	@echo "Running security checks..."
+	@echo "Checking Python dependencies..."
+	cd backend && uv run pip-audit || echo "Install pip-audit for security scanning: uv pip install pip-audit"
+	@echo ""
+	@echo "Checking Node dependencies..."
+	cd frontend && npm audit || true
+

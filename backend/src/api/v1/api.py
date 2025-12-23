@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 from .endpoints import auth, leaderboard, live_players
 
 api_router = APIRouter()

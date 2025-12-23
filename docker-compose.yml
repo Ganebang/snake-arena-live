@@ -19,36 +19,21 @@ services:
     networks:
       - snake-arena-network
 
-  backend:
+  app:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
-    container_name: snake-arena-backend
+    container_name: snake-arena-app
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-snakearena}:${POSTGRES_PASSWORD:-snakearena_dev_password}@postgres:5432/${POSTGRES_DB:-snakearena}
       SECRET_KEY: ${SECRET_KEY:-development_secret_key_change_in_production}
+      POSTGRES_USER: ${POSTGRES_USER:-snakearena}
       # Use JSON array format for list fields with pydantic
       CORS_ORIGINS: '["http://localhost","http://localhost:80"]'
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app
-      - /app/.venv
-    networks:
-      - snake-arena-network
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: snake-arena-frontend
-    restart: unless-stopped
-    depends_on:
-      - backend
     ports:
       - "80:80"
     networks:
