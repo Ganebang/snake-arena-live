@@ -6,10 +6,6 @@ services:
     plan: free
     region: oregon
     buildCommand: docker build -t snake-arena .
-    startCommand: ./entrypoint.sh 
-    # Note: startCommand is technically defined in Dockerfile ENTRYPOINT,
-    # but explicit declaration can be helpful for clarity or overrides.
-    # However, Render's Docker runtime respects Dockerfile ENTRYPOINT by default.
     envVars:
       - key: PORT
         value: 80
