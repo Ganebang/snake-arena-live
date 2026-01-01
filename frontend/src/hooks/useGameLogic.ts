@@ -91,8 +91,8 @@ export const moveSnake = (state: GameState): GameState => {
   }
 
   const newScore = ateFood ? state.score + 10 : state.score;
-  const newSpeed = ateFood 
-    ? Math.max(MIN_SPEED, state.speed - SPEED_INCREMENT) 
+  const newSpeed = ateFood
+    ? Math.max(MIN_SPEED, state.speed - SPEED_INCREMENT)
     : state.speed;
 
   return {
@@ -106,12 +106,12 @@ export const moveSnake = (state: GameState): GameState => {
 
 export const changeDirection = (state: GameState, newDirection: Direction): GameState => {
   if (state.status !== 'playing') return state;
-  
+
   // Prevent reversing direction
   if (newDirection === getOppositeDirection(state.direction)) {
     return state;
   }
-  
+
   return { ...state, direction: newDirection };
 };
 
@@ -168,13 +168,13 @@ export const useGameLogic = (initialMode: GameMode = 'pass-through') => {
 
     const intervalId = setInterval(() => {
       let currentState = gameStateRef.current;
-      
+
       // Process direction queue
       if (directionQueueRef.current.length > 0) {
         const nextDirection = directionQueueRef.current.shift()!;
         currentState = changeDirection(currentState, nextDirection);
       }
-      
+
       const newState = moveSnake(currentState);
       gameStateRef.current = newState;
       setGameState(newState);
@@ -184,6 +184,65 @@ export const useGameLogic = (initialMode: GameMode = 'pass-through') => {
       clearInterval(intervalId);
     };
   }, [gameState.status, gameState.speed]);
+
+  // Heartbeat to update live player status for spectator mode
+  useEffect(() => {
+    // Only send heartbeat if user is playing
+    if (gameState.status !== 'playing') {
+      return;
+    }
+
+    // Import api inside effect to avoid circular dependencies
+    import('@/services/api').then(({ api }) => {
+      import('@/contexts/AuthContext').then(({ useAuth }) => {
+        // We can't use hooks here, so we check localStorage directly
+        const isAuthenticated = !!localStorage.getItem('authToken');
+
+        if (!isAuthenticated) {
+          return;
+        }
+
+        // Send initial update immediately
+        api.livePlayers.updateLiveStatus({
+          score: gameState.score,
+          mode: gameState.mode,
+          snake: gameState.snake,
+          food: gameState.food,
+          direction: gameState.direction,
+          isPlaying: true,
+        }).catch(err => console.error('Failed to update live status:', err));
+
+        // Then send updates every 500ms
+        const heartbeatInterval = setInterval(() => {
+          const currentState = gameStateRef.current;
+          if (currentState.status === 'playing') {
+            api.livePlayers.updateLiveStatus({
+              score: currentState.score,
+              mode: currentState.mode,
+              snake: currentState.snake,
+              food: currentState.food,
+              direction: currentState.direction,
+              isPlaying: true,
+            }).catch(err => console.error('Failed to update live status:', err));
+          }
+        }, 500);
+
+        return () => {
+          clearInterval(heartbeatInterval);
+          // Send final update with isPlaying: false
+          const currentState = gameStateRef.current;
+          api.livePlayers.updateLiveStatus({
+            score: currentState.score,
+            mode: currentState.mode,
+            snake: currentState.snake,
+            food: currentState.food,
+            direction: currentState.direction,
+            isPlaying: false,
+          }).catch(err => console.error('Failed to update live status:', err));
+        };
+      });
+    });
+  }, [gameState.status]);
 
   // Keyboard controls
   useEffect(() => {

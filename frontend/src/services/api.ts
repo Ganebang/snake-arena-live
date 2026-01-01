@@ -174,6 +174,20 @@ export const livePlayersApi = {
             throw error;
         }
     },
+
+    async updateLiveStatus(gameState: {
+        score: number;
+        mode: GameMode;
+        snake: { x: number; y: number }[];
+        food: { x: number; y: number };
+        direction: string;
+        isPlaying: boolean;
+    }): Promise<void> {
+        await apiFetch<void>('/live-players/ping', {
+            method: 'POST',
+            body: JSON.stringify(gameState),
+        });
+    },
 };
 
 // Export all APIs as a single object for easy importing

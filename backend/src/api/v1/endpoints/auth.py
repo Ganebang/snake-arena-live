@@ -13,26 +13,7 @@ from src.schemas.user import User
 
 router = APIRouter()
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Annotated[Session, Depends(get_db)]):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        import jwt
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except jwt.PyJWTError:
-        raise credentials_exception
-
-    user = db_session.get_user_by_email(db, email)
-    if user is None:
-        raise credentials_exception
-    return user
-
+from src.api.deps import get_current_user
 @router.post("/login", response_model=AuthResponse)
 async def login(credentials: AuthCredentials, db: Annotated[Session, Depends(get_db)]):
     user = db_session.get_user_by_email(db, credentials.email)

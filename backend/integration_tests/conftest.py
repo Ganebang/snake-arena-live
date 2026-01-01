@@ -76,3 +76,29 @@ def client(test_db):
     # Clear overrides after test
     app.dependency_overrides.clear()
     clear_live_players()
+
+
+@pytest.fixture(scope="function")
+def auth_headers(client, db_session):
+    """Create an authenticated user and return auth headers."""
+    from src.core.security import get_password_hash
+    from src.db import session as db_session_module
+    
+    # Create a test user
+    user = db_session_module.create_user(
+        db=db_session,
+        username="testuser",
+        email="test@example.com",
+        password_hash=get_password_hash("testpassword")
+    )
+    
+    # Login to get token
+    response = client.post("/api/v1/auth/login", json={
+        "email": "test@example.com",
+        "password": "testpassword"
+    })
+    
+    assert response.status_code == 200
+    token = response.json()["token"]
+    
+    return {"Authorization": f"Bearer {token}"}

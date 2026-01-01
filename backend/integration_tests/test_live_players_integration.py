@@ -281,3 +281,58 @@ class TestLivePlayersIntegration:
         assert "DOWN" in directions_in_response
         assert "LEFT" in directions_in_response
         assert "RIGHT" in directions_in_response
+
+    def test_ping_endpoint_updates_live_status(self, client, auth_headers):
+        """Test that authenticated users can update their live status via ping endpoint."""
+        from src.schemas.game import LivePlayerUpdate
+        
+        # Create live player update payload
+        update_data = {
+            "score": 250,
+            "mode": "walls",
+            "snake": [{"x": 10, "y": 10}, {"x": 11, "y": 10}],
+            "food": {"x": 15, "y": 15},
+            "direction": "RIGHT",
+            "isPlaying": True
+        }
+        
+        # Send ping to update live status
+        response = client.post(
+            f"{settings.API_V1_STR}/live-players/ping",
+            json=update_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == 204
+        
+        # Verify the player appears in live players list
+        response = client.get(f"{settings.API_V1_STR}/live-players")
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert len(data) == 1
+        
+        player = data[0]
+        assert player["score"] == 250
+        assert player["mode"] == "walls"
+        assert len(player["snake"]) == 2
+        assert player["isPlaying"] is True
+    
+    def test_ping_endpoint_requires_authentication(self, client):
+        """Test that ping endpoint requires authentication."""
+        update_data = {
+            "score": 100,
+            "mode": "walls",
+            "snake": [{"x": 10, "y": 10}],
+            "food": {"x": 15, "y": 15},
+            "direction": "RIGHT",
+            "isPlaying": True
+        }
+        
+        # Try to ping without auth headers
+        response = client.post(
+            f"{settings.API_V1_STR}/live-players/ping",
+            json=update_data
+        )
+        
+        assert response.status_code == 401

@@ -30,3 +30,11 @@ class LivePlayer(BaseModel):
     food: Position
     direction: Direction
     isPlaying: bool
+
+class LivePlayerUpdate(BaseModel):
+    score: int
+    mode: GameMode
+    snake: list[Position]
+    food: Position
+    direction: Direction
+    isPlaying: bool
