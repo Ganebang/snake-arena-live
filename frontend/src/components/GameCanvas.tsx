@@ -9,10 +9,10 @@ interface GameCanvasProps {
 
 const GRID_SIZE = 20;
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ 
-  gameState, 
-  cellSize = 20,
-  isSpectator = false 
+const GameCanvas: React.FC<GameCanvasProps> = ({
+  gameState,
+  cellSize = 25,
+  isSpectator = false
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -38,7 +38,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.moveTo(i * cellSize, 0);
       ctx.lineTo(i * cellSize, height);
       ctx.stroke();
-      
+
       ctx.beginPath();
       ctx.moveTo(0, i * cellSize);
       ctx.lineTo(width, i * cellSize);
@@ -64,10 +64,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.arc(x, y, radius, 0, Math.PI * 2);
       ctx.fillStyle = 'hsl(330, 100%, 60%)';
       ctx.fill();
-      
+
       // Inner highlight
       ctx.beginPath();
-      ctx.arc(x - radius/3, y - radius/3, radius/3, 0, Math.PI * 2);
+      ctx.arc(x - radius / 3, y - radius / 3, radius / 3, 0, Math.PI * 2);
       ctx.fillStyle = 'hsla(330, 100%, 80%, 0.6)';
       ctx.fill();
     };
@@ -83,13 +83,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         // Glow effect for head
         if (index === 0) {
           const gradient = ctx.createRadialGradient(
-            x + cellSize/2, y + cellSize/2, 0,
-            x + cellSize/2, y + cellSize/2, cellSize
+            x + cellSize / 2, y + cellSize / 2, 0,
+            x + cellSize / 2, y + cellSize / 2, cellSize
           );
           gradient.addColorStop(0, 'hsla(120, 100%, 50%, 0.5)');
           gradient.addColorStop(1, 'transparent');
           ctx.fillStyle = gradient;
-          ctx.fillRect(x - cellSize/2, y - cellSize/2, cellSize * 2, cellSize * 2);
+          ctx.fillRect(x - cellSize / 2, y - cellSize / 2, cellSize * 2, cellSize * 2);
         }
 
         // Snake segment
@@ -107,23 +107,23 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.fillStyle = 'hsl(220, 20%, 10%)';
           const eyeSize = 3;
           const eyeOffset = cellSize / 3;
-          
+
           switch (gameState.direction) {
             case 'RIGHT':
-              ctx.fillRect(x + cellSize - eyeOffset, y + eyeOffset - eyeSize/2, eyeSize, eyeSize);
-              ctx.fillRect(x + cellSize - eyeOffset, y + cellSize - eyeOffset - eyeSize/2, eyeSize, eyeSize);
+              ctx.fillRect(x + cellSize - eyeOffset, y + eyeOffset - eyeSize / 2, eyeSize, eyeSize);
+              ctx.fillRect(x + cellSize - eyeOffset, y + cellSize - eyeOffset - eyeSize / 2, eyeSize, eyeSize);
               break;
             case 'LEFT':
-              ctx.fillRect(x + eyeOffset - eyeSize, y + eyeOffset - eyeSize/2, eyeSize, eyeSize);
-              ctx.fillRect(x + eyeOffset - eyeSize, y + cellSize - eyeOffset - eyeSize/2, eyeSize, eyeSize);
+              ctx.fillRect(x + eyeOffset - eyeSize, y + eyeOffset - eyeSize / 2, eyeSize, eyeSize);
+              ctx.fillRect(x + eyeOffset - eyeSize, y + cellSize - eyeOffset - eyeSize / 2, eyeSize, eyeSize);
               break;
             case 'UP':
-              ctx.fillRect(x + eyeOffset - eyeSize/2, y + eyeOffset - eyeSize, eyeSize, eyeSize);
-              ctx.fillRect(x + cellSize - eyeOffset - eyeSize/2, y + eyeOffset - eyeSize, eyeSize, eyeSize);
+              ctx.fillRect(x + eyeOffset - eyeSize / 2, y + eyeOffset - eyeSize, eyeSize, eyeSize);
+              ctx.fillRect(x + cellSize - eyeOffset - eyeSize / 2, y + eyeOffset - eyeSize, eyeSize, eyeSize);
               break;
             case 'DOWN':
-              ctx.fillRect(x + eyeOffset - eyeSize/2, y + cellSize - eyeOffset, eyeSize, eyeSize);
-              ctx.fillRect(x + cellSize - eyeOffset - eyeSize/2, y + cellSize - eyeOffset, eyeSize, eyeSize);
+              ctx.fillRect(x + eyeOffset - eyeSize / 2, y + cellSize - eyeOffset, eyeSize, eyeSize);
+              ctx.fillRect(x + cellSize - eyeOffset - eyeSize / 2, y + cellSize - eyeOffset, eyeSize, eyeSize);
               break;
           }
         }
@@ -135,7 +135,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.strokeStyle = 'hsl(0, 80%, 50%)';
       ctx.lineWidth = 3;
       ctx.strokeRect(1, 1, width - 2, height - 2);
-      
+
       // Corner highlights
       const cornerSize = 10;
       ctx.fillStyle = 'hsl(0, 80%, 50%)';
@@ -156,16 +156,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     if (gameState.status === 'game-over' && !isSpectator) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       ctx.fillRect(0, 0, width, height);
-      
+
       ctx.font = '16px "Press Start 2P"';
       ctx.fillStyle = 'hsl(0, 80%, 50%)';
       ctx.textAlign = 'center';
       ctx.fillText('GAME OVER', width / 2, height / 2 - 20);
-      
+
       ctx.font = '10px "Press Start 2P"';
       ctx.fillStyle = 'hsl(120, 100%, 50%)';
       ctx.fillText(`SCORE: ${gameState.score}`, width / 2, height / 2 + 10);
-      
+
       ctx.font = '8px "Press Start 2P"';
       ctx.fillStyle = 'hsl(220, 20%, 60%)';
       ctx.fillText('PRESS SPACE TO RESTART', width / 2, height / 2 + 40);
@@ -175,7 +175,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     if (gameState.status === 'paused' && !isSpectator) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fillRect(0, 0, width, height);
-      
+
       ctx.font = '16px "Press Start 2P"';
       ctx.fillStyle = 'hsl(200, 100%, 50%)';
       ctx.textAlign = 'center';
@@ -186,7 +186,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     if (gameState.status === 'idle' && !isSpectator) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
       ctx.fillRect(0, 0, width, height);
-      
+
       ctx.font = '10px "Press Start 2P"';
       ctx.fillStyle = 'hsl(120, 100%, 50%)';
       ctx.textAlign = 'center';
@@ -200,7 +200,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ref={canvasRef}
       width={GRID_SIZE * cellSize}
       height={GRID_SIZE * cellSize}
-      className="arcade-border rounded-lg"
+      className="rounded-lg shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-primary/20"
     />
   );
 };

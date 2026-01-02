@@ -4,7 +4,7 @@ SQLAlchemy database models for Snake Arena Live
 import enum
 import uuid
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Index, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.sql import func
 
@@ -26,6 +26,7 @@ class User(Base):
     username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
+    is_superuser = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships

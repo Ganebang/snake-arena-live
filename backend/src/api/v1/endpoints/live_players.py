@@ -18,10 +18,13 @@ async def get_live_player(id: str):
     return player
 
 from typing import Annotated
+
 from fastapi import Depends
+
+from src.api.deps import get_current_user
 from src.schemas.game import LivePlayerUpdate
 from src.schemas.user import User
-from src.api.deps import get_current_user
+
 
 @router.post("/ping", status_code=204)
 async def update_live_status(

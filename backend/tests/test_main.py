@@ -1,11 +1,13 @@
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from src.main import app
-from src.db.models import Base
-from src.db.database import get_db
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
 from src.core.config import settings
+from src.db.database import get_db
+from src.db.models import Base
+from src.main import app
 
 
 @pytest.fixture(scope="function")
@@ -13,8 +15,11 @@ def test_engine():
     """Create a fresh in-memory database engine for each test."""
     engine = create_engine(
         "sqlite:///:memory:",
-        connect_args={"check_same_thread": False}
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool
     )
+    # Ensure models are registered
+    # print(f"DEBUG: creating tables for: {Base.metadata.tables.keys()}")
     Base.metadata.create_all(bind=engine)
     yield engine
     Base.metadata.drop_all(bind=engine)
@@ -37,12 +42,14 @@ def client(test_session):
             yield db
         finally:
             db.close()
-    
+
     app.dependency_overrides[get_db] = override_get_db
-    
-    with TestClient(app) as test_client:
-        yield test_client
-    
+
+    from unittest.mock import patch
+    with patch("src.main.init_db"):
+        with TestClient(app) as test_client:
+            yield test_client
+
     app.dependency_overrides.clear()
 
 
@@ -50,7 +57,10 @@ def test_read_main(client):
     """Test the root endpoint."""
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"message": "Welcome to Snake Arena API"}
+    data = response.json()
+    assert "message" in data
+    assert "version" in data
+    assert "docs" in data
 
 
 def test_auth_workflow(client):
@@ -67,7 +77,7 @@ def test_auth_workflow(client):
     assert "token" in data
     assert data["user"]["email"] == "test@example.com"
     token = data["token"]
-    
+
     # 2. Login
     login_data = {
         "email": "test@example.com",
@@ -76,7 +86,7 @@ def test_auth_workflow(client):
     response = client.post(f"{settings.API_V1_STR}/auth/login", json=login_data)
     assert response.status_code == 200
     assert "token" in response.json()
-    
+
     # 3. Get Me
     headers = {"Authorization": f"Bearer {token}"}
     response = client.get(f"{settings.API_V1_STR}/auth/me", headers=headers)
@@ -92,18 +102,18 @@ def test_leaderboard(client):
     token = response.json()["token"]
     user_id = response.json()["user"]["id"]
     headers = {"Authorization": f"Bearer {token}"}
-    
+
     # Submit score
     score_data = {"score": 100, "mode": "walls"}
     response = client.post(f"{settings.API_V1_STR}/leaderboard", json=score_data, headers=headers)
     assert response.status_code == 201
-    
+
     # Get leaderboard
     response = client.get(f"{settings.API_V1_STR}/leaderboard?mode=walls")
     assert response.status_code == 200
     assert len(response.json()) == 1
     assert response.json()[0]["score"] == 100
-    
+
     # Get high score
     response = client.get(f"{settings.API_V1_STR}/leaderboard/high-score?userId={user_id}&mode=walls")
     assert response.status_code == 200

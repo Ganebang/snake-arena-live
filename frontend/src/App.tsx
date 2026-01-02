@@ -10,6 +10,9 @@ import SpectatePage from "./pages/SpectatePage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./components/AdminLayout";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsers from "./pages/AdminUsers";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +29,13 @@ const App = () => (
             <Route path="/spectate" element={<SpectatePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUsers />} />
+            </Route>
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -29,6 +29,7 @@ def create_user(db: Session, username: str, email: str, password_hash: str) -> U
         id=db_user.id,
         username=db_user.username,
         email=db_user.email,
+        is_superuser=db_user.is_superuser,
         createdAt=db_user.created_at.isoformat()
     )
 
@@ -42,6 +43,7 @@ def get_user_by_email(db: Session, email: str) -> User | None:
         id=db_user.id,
         username=db_user.username,
         email=db_user.email,
+        is_superuser=db_user.is_superuser,
         createdAt=db_user.created_at.isoformat()
     )
 
@@ -55,6 +57,7 @@ def get_user_by_id(db: Session, user_id: str) -> User | None:
         id=db_user.id,
         username=db_user.username,
         email=db_user.email,
+        is_superuser=db_user.is_superuser,
         createdAt=db_user.created_at.isoformat()
     )
 

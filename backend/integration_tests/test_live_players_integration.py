@@ -2,23 +2,22 @@
 Integration tests for live player endpoints.
 Tests retrieving live players and individual player data during active games.
 """
-import pytest
 from src.core.config import settings
-from src.schemas.game import LivePlayer, Position
-from src.schemas.enums import GameMode, Direction
 from src.db import session as db_session
+from src.schemas.enums import Direction, GameMode
+from src.schemas.game import LivePlayer, Position
 
 
 class TestLivePlayersIntegration:
     """Integration tests for live players functionality."""
-    
+
     def test_get_live_players_empty(self, client):
         """Test getting live players when no players are active."""
         response = client.get(f"{settings.API_V1_STR}/live-players")
-        
+
         assert response.status_code == 200
         assert response.json() == []
-    
+
     def test_get_live_players_with_active_players(self, client):
         """Test getting all active live players."""
         # Add live players to cache
@@ -42,22 +41,22 @@ class TestLivePlayersIntegration:
             direction=Direction.UP,
             isPlaying=True
         )
-        
+
         db_session.update_live_player(player1)
         db_session.update_live_player(player2)
-        
+
         # Get all live players
         response = client.get(f"{settings.API_V1_STR}/live-players")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
-        
+
         # Verify player data
         player_ids = {p["id"] for p in data}
         assert "p1" in player_ids
         assert "p2" in player_ids
-    
+
     def test_get_specific_live_player(self, client):
         """Test retrieving a specific live player by ID."""
         # Add a live player
@@ -72,10 +71,10 @@ class TestLivePlayersIntegration:
             isPlaying=True
         )
         db_session.update_live_player(player)
-        
+
         # Get specific player
         response = client.get(f"{settings.API_V1_STR}/live-players/specific-player")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == "specific-player"
@@ -89,14 +88,14 @@ class TestLivePlayersIntegration:
         assert data["food"]["y"] == 18
         assert data["direction"] == "DOWN"
         assert data["isPlaying"] is True
-    
+
     def test_get_nonexistent_live_player(self, client):
         """Test that getting a non-existent player returns 404."""
         response = client.get(f"{settings.API_V1_STR}/live-players/nonexistent-id")
-        
+
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
-    
+
     def test_live_player_walls_mode(self, client):
         """Test live player in walls game mode."""
         player = LivePlayer(
@@ -110,14 +109,14 @@ class TestLivePlayersIntegration:
             isPlaying=True
         )
         db_session.update_live_player(player)
-        
+
         response = client.get(f"{settings.API_V1_STR}/live-players/walls-player")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["mode"] == "walls"
         assert data["isPlaying"] is True
-    
+
     def test_live_player_pass_through_mode(self, client):
         """Test live player in pass-through game mode."""
         player = LivePlayer(
@@ -131,18 +130,18 @@ class TestLivePlayersIntegration:
             isPlaying=True
         )
         db_session.update_live_player(player)
-        
+
         response = client.get(f"{settings.API_V1_STR}/live-players/passthrough-player")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["mode"] == "pass-through"
         assert data["isPlaying"] is True
-    
+
     def test_live_player_with_long_snake(self, client):
         """Test live player with a longer snake."""
         snake_positions = [Position(x=i, y=10) for i in range(10)]
-        
+
         player = LivePlayer(
             id="long-snake",
             username="longSnake",
@@ -154,14 +153,14 @@ class TestLivePlayersIntegration:
             isPlaying=True
         )
         db_session.update_live_player(player)
-        
+
         response = client.get(f"{settings.API_V1_STR}/live-players/long-snake")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data["snake"]) == 10
         assert data["score"] == 500
-    
+
     def test_live_player_not_playing(self, client):
         """Test live player who is not currently playing (game over)."""
         player = LivePlayer(
@@ -175,13 +174,13 @@ class TestLivePlayersIntegration:
             isPlaying=False
         )
         db_session.update_live_player(player)
-        
+
         response = client.get(f"{settings.API_V1_STR}/live-players/game-over")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["isPlaying"] is False
-    
+
     def test_update_live_player(self, client):
         """Test that updating a live player works correctly."""
         # Add initial player
@@ -196,7 +195,7 @@ class TestLivePlayersIntegration:
             isPlaying=True
         )
         db_session.update_live_player(player1)
-        
+
         # Update the same player with new data
         player2 = LivePlayer(
             id="update-test",
@@ -209,16 +208,16 @@ class TestLivePlayersIntegration:
             isPlaying=True
         )
         db_session.update_live_player(player2)
-        
+
         # Verify the update
         response = client.get(f"{settings.API_V1_STR}/live-players/update-test")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["score"] == 150
         assert len(data["snake"]) == 2
         assert data["food"]["x"] == 20
-    
+
     def test_multiple_players_different_modes(self, client):
         """Test multiple players playing in different game modes."""
         players = [
@@ -234,27 +233,27 @@ class TestLivePlayersIntegration:
             )
             for i in range(5)
         ]
-        
+
         for player in players:
             db_session.update_live_player(player)
-        
+
         # Get all players
         response = client.get(f"{settings.API_V1_STR}/live-players")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 5
-        
+
         # Verify mode distribution
         walls_count = sum(1 for p in data if p["mode"] == "walls")
         passthrough_count = sum(1 for p in data if p["mode"] == "pass-through")
         assert walls_count == 3
         assert passthrough_count == 2
-    
+
     def test_live_player_directions(self, client):
         """Test that all direction types are handled correctly."""
         directions = [Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT]
-        
+
         for i, direction in enumerate(directions):
             player = LivePlayer(
                 id=f"dir-{i}",
@@ -267,14 +266,14 @@ class TestLivePlayersIntegration:
                 isPlaying=True
             )
             db_session.update_live_player(player)
-        
+
         # Verify all players
         response = client.get(f"{settings.API_V1_STR}/live-players")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 4
-        
+
         # Verify each direction is present
         directions_in_response = {p["direction"] for p in data}
         assert "UP" in directions_in_response
@@ -284,8 +283,7 @@ class TestLivePlayersIntegration:
 
     def test_ping_endpoint_updates_live_status(self, client, auth_headers):
         """Test that authenticated users can update their live status via ping endpoint."""
-        from src.schemas.game import LivePlayerUpdate
-        
+
         # Create live player update payload
         update_data = {
             "score": 250,
@@ -295,29 +293,29 @@ class TestLivePlayersIntegration:
             "direction": "RIGHT",
             "isPlaying": True
         }
-        
+
         # Send ping to update live status
         response = client.post(
             f"{settings.API_V1_STR}/live-players/ping",
             json=update_data,
             headers=auth_headers
         )
-        
+
         assert response.status_code == 204
-        
+
         # Verify the player appears in live players list
         response = client.get(f"{settings.API_V1_STR}/live-players")
         assert response.status_code == 200
-        
+
         data = response.json()
         assert len(data) == 1
-        
+
         player = data[0]
         assert player["score"] == 250
         assert player["mode"] == "walls"
         assert len(player["snake"]) == 2
         assert player["isPlaying"] is True
-    
+
     def test_ping_endpoint_requires_authentication(self, client):
         """Test that ping endpoint requires authentication."""
         update_data = {
@@ -328,11 +326,11 @@ class TestLivePlayersIntegration:
             "direction": "RIGHT",
             "isPlaying": True
         }
-        
+
         # Try to ping without auth headers
         response = client.post(
             f"{settings.API_V1_STR}/live-players/ping",
             json=update_data
         )
-        
+
         assert response.status_code == 401

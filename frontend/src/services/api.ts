@@ -190,9 +190,27 @@ export const livePlayersApi = {
     },
 };
 
+// Admin API
+export const adminApi = {
+    async getStats(): Promise<{ users: number; games: number; games_by_mode: Record<string, number> }> {
+        return apiFetch<{ users: number; games: number; games_by_mode: Record<string, number> }>('/admin/stats');
+    },
+
+    async getUsers(): Promise<User[]> {
+        return apiFetch<User[]>('/admin/users');
+    },
+
+    async deleteUser(userId: string): Promise<void> {
+        return apiFetch<void>(`/admin/users/${userId}`, {
+            method: 'DELETE',
+        });
+    },
+};
+
 // Export all APIs as a single object for easy importing
 export const api = {
     auth: authApi,
     leaderboard: leaderboardApi,
     livePlayers: livePlayersApi,
+    admin: adminApi,
 };

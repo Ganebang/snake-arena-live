@@ -1,11 +1,11 @@
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from src.core.config import settings
-from src.core.security import create_access_token, get_password_hash, oauth2_scheme, verify_password
+from src.core.security import create_access_token, get_password_hash, verify_password
 from src.db import session as db_session
 from src.db.database import get_db
 from src.schemas.auth import AuthCredentials, AuthResponse
@@ -14,6 +14,8 @@ from src.schemas.user import User
 router = APIRouter()
 
 from src.api.deps import get_current_user
+
+
 @router.post("/login", response_model=AuthResponse)
 async def login(credentials: AuthCredentials, db: Annotated[Session, Depends(get_db)]):
     user = db_session.get_user_by_email(db, credentials.email)

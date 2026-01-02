@@ -4,6 +4,7 @@ import { api } from '@/services/api';
 import GameCanvas from './GameCanvas';
 import { Button } from '@/components/ui/button';
 import { Eye, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const SpectatorView: React.FC = () => {
   const [livePlayers, setLivePlayers] = useState<LivePlayer[]>([]);
@@ -77,10 +78,15 @@ const SpectatorView: React.FC = () => {
   if (livePlayers.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground font-display">No live games right now</p>
-          <p className="text-xs text-muted-foreground mt-2">Check back later!</p>
+        <div className="text-center max-w-md">
+          <Users className="h-16 w-16 text-muted-foreground mx-auto mb-6 opacity-50" />
+          <h3 className="text-xl font-game text-glow-secondary mb-3">NO LIVE GAMES</h3>
+          <p className="text-sm text-muted-foreground font-display mb-4">
+            No one is playing right now. Be the first to start a game!
+          </p>
+          <p className="text-xs text-muted-foreground/70">
+            When players are online, you'll be able to watch their games in real-time here.
+          </p>
         </div>
       </div>
     );
@@ -118,18 +124,29 @@ const SpectatorView: React.FC = () => {
         <div className="flex flex-col items-center gap-4">
           {/* Player Info */}
           <div className="flex items-center gap-6 px-6 py-3 bg-card rounded-lg arcade-border">
+            {/* Live indicator */}
             <div className="flex items-center gap-2">
-              <Eye className="h-4 w-4 text-secondary animate-pulse" />
-              <span className="text-xs text-muted-foreground">WATCHING</span>
+              <div className="relative flex items-center justify-center">
+                <span className="absolute inline-flex h-3 w-3 animate-ping rounded-full bg-red-500 opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
+              </div>
+              <span className="text-xs text-red-500 font-bold">LIVE</span>
             </div>
-            <div className="text-center">
+
+            {/* Player name */}
+            <div className="text-center flex-1">
               <p className="font-display font-bold text-lg text-foreground">
                 {selectedPlayer.username}
               </p>
-              <p className="text-[10px] text-muted-foreground uppercase">
-                {selectedPlayer.mode === 'walls' ? 'Walls Mode' : 'Wrap Mode'}
-              </p>
+              <Badge
+                variant={selectedPlayer.mode === 'walls' ? 'default' : 'secondary'}
+                className="text-[9px] mt-1"
+              >
+                {selectedPlayer.mode === 'walls' ? '🧱 WALLS' : '🌀 WRAP'}
+              </Badge>
             </div>
+
+            {/* Score */}
             <div className="text-center">
               <p className="text-xs text-muted-foreground">SCORE</p>
               <p className="font-game text-xl text-glow">{selectedPlayer.score}</p>

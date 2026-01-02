@@ -12,6 +12,7 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: str
+    is_superuser: bool
     createdAt: datetime
 
     model_config = ConfigDict(from_attributes=True)

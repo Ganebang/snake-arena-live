@@ -1,9 +1,9 @@
 """
 Health check endpoints for monitoring service status.
 """
-from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from src.db.database import SessionLocal
 
